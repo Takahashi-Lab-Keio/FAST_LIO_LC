@@ -26,6 +26,7 @@ find_package(Ceres REQUIRED)
 
 find_package(OpenMP REQUIRED)
 find_package(GTSAM REQUIRED QUIET)
+find_package(Boost REQUIRED COMPONENTS timer)
 
 include_directories(
   include
@@ -63,6 +64,7 @@ target_link_libraries(alaserPGO
   ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${CERES_LIBRARIES}
   ${OpenMP_CXX_FLAGS}
   gtsam
+  Boost::timer
 )
 
 add_executable(kittiHelper src/kittiHelper.cpp)

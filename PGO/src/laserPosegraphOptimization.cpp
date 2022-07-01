@@ -333,8 +333,8 @@ void pubPath( void )
     nav_msgs::Path pathAftPGO;
     pathAftPGO.header.frame_id = "camera_init";
     mKF.lock(); 
-    // for (int node_idx=0; node_idx < int(keyframePosesUpdated.size()) - 1; node_idx++) // -1 is just delayed visualization (because sometimes mutexed while adding(push_back) a new one)
-    for (int node_idx=0; node_idx < recentIdxUpdated; node_idx++) // -1 is just delayed visualization (because sometimes mutexed while adding(push_back) a new one)
+    for (int node_idx=0; node_idx < int(keyframePosesUpdated.size()) - 1; node_idx++) // -1 is just delayed visualization (because sometimes mutexed while adding(push_back) a new one)
+    // for (int node_idx=0; node_idx < recentIdxUpdated; node_idx++) // -1 is just delayed visualization (because sometimes mutexed while adding(push_back) a new one)
     {
         const Pose6D& pose_est = keyframePosesUpdated.at(node_idx); // upodated poses
         // const gtsam::Pose3& pose_est = isamCurrentEstimate.at<gtsam::Pose3>(node_idx);
@@ -727,10 +727,10 @@ void process_pg()
             }
             // if want to print the current graph, use gtSAMgraph.print("\nFactor Graph:\n");
 
-            // save utility 
-            std::string curr_node_idx_str = padZeros(curr_node_idx);
-            pcl::io::savePCDFileBinary(pgScansDirectory + curr_node_idx_str + ".pcd", *thisKeyFrame); // scan 
-            pgTimeSaveStream << timeLaser << std::endl; // path 
+            // // save utility 
+            // std::string curr_node_idx_str = padZeros(curr_node_idx);
+            // pcl::io::savePCDFileBinary(pgScansDirectory + curr_node_idx_str + ".pcd", *thisKeyFrame); // scan 
+            // pgTimeSaveStream << timeLaser << std::endl; // path 
         }
 
         // ps. 
@@ -827,7 +827,10 @@ void performRSLoopClosure(void)
         // addding actual 6D constraints in the other thread, icp_calculation.
         mBuf.unlock();
     } else 
-        return;
+    {
+         cout << "No Loop detected!"<< endl;
+         return;
+    }
 } // performRSLoopClosure
 
 /**
@@ -955,7 +958,7 @@ void process_isam(void)
         if( gtSAMgraphMade ) {
             mtxPosegraph.lock();
             runISAM2opt();
-            // cout << "running isam2 optimization ..." << endl;
+            cout << "running isam2 optimization ..." << endl;
             mtxPosegraph.unlock();
 
             saveOptimizedVerticesKITTIformat(isamCurrentEstimate, pgKITTIformat); // pose
@@ -972,8 +975,8 @@ void pubMap(void)
     laserCloudMapPGO->clear();
 
     mKF.lock(); 
-    // for (int node_idx=0; node_idx < int(keyframePosesUpdated.size()); node_idx++) {
-    for (int node_idx=0; node_idx < recentIdxUpdated; node_idx++) {
+    for (int node_idx=0; node_idx < int(keyframePosesUpdated.size()); node_idx++) {
+    // for (int node_idx=0; node_idx < recentIdxUpdated; node_idx++) {
         if(counter % SKIP_FRAMES == 0) {
             *laserCloudMapPGO += *local2global(keyframeLaserClouds[node_idx], keyframePosesUpdated[node_idx]);
         }
