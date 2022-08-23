@@ -241,6 +241,7 @@ void process()
 				odometryBuf.pop();
 			if (odometryBuf.empty())
 			{
+				printf("odometryBuf.empty())");
 				mBuf.unlock();
 				break;
 			}
@@ -249,6 +250,7 @@ void process()
 				surfLastBuf.pop();
 			if (surfLastBuf.empty())
 			{
+				printf("surfLastBuf.empty()");
 				mBuf.unlock();
 				break;
 			}
@@ -257,6 +259,7 @@ void process()
 				fullResBuf.pop();
 			if (fullResBuf.empty())
 			{
+				printf("fullResBuf.empty()");
 				mBuf.unlock();
 				break;
 			}
@@ -270,8 +273,8 @@ void process()
 				timeLaserCloudSurfLast != timeLaserOdometry ||
 				timeLaserCloudFullRes != timeLaserOdometry)
 			{
-				//printf("time corner %f surf %f full %f odom %f \n", timeLaserCloudCornerLast, timeLaserCloudSurfLast, timeLaserCloudFullRes, timeLaserOdometry);
-				//printf("unsync messeage!");
+				printf("time corner %f surf %f full %f odom %f \n", timeLaserCloudCornerLast, timeLaserCloudSurfLast, timeLaserCloudFullRes, timeLaserOdometry);
+				printf("unsync messeage!");
 				mBuf.unlock();
 				break;
 			}

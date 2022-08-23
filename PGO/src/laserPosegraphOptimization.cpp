@@ -228,6 +228,8 @@ void saveOptimizedVerticesKITTIformat(gtsam::Values _estimates, std::string _fil
 
 void laserOdometryHandler(const nav_msgs::Odometry::ConstPtr &_laserOdometry)
 {
+    nav_msgs::Odometry odom = *_laserOdometry;
+    //std::cout << "[PGO::laserOdometryHandler] : " << odom.pose.pose.position.x << ", " << odom.pose.pose.position.y << ", " << odom.pose.pose.position.z << ", " << odom.pose.pose.orientation.x << ", " << odom.pose.pose.orientation.y << ", " << odom.pose.pose.orientation.z << std::endl;
 	mBuf.lock();
 	odometryBuf.push(_laserOdometry);
 	mBuf.unlock();
@@ -333,10 +335,12 @@ void pubPath( void )
     nav_msgs::Path pathAftPGO;
     pathAftPGO.header.frame_id = "camera_init";
     mKF.lock(); 
+    // std::cout << "[PGO::pubPath int(keyframePosesUpdated.size())] : " <<  int(keyframePosesUpdated.size())<< std::endl;
     for (int node_idx=0; node_idx < int(keyframePosesUpdated.size()) - 1; node_idx++) // -1 is just delayed visualization (because sometimes mutexed while adding(push_back) a new one)
     // for (int node_idx=0; node_idx < recentIdxUpdated; node_idx++) // -1 is just delayed visualization (because sometimes mutexed while adding(push_back) a new one)
     {
         const Pose6D& pose_est = keyframePosesUpdated.at(node_idx); // upodated poses
+        // std::cout << "[PGO::pubPath pose_est] : " <<  pose_est.x << ", " << pose_est.y << ", " << pose_est.z << ", " << pose_est.roll << ", " <<pose_est.pitch << ", " << pose_est.yaw<< std::endl;
         // const gtsam::Pose3& pose_est = isamCurrentEstimate.at<gtsam::Pose3>(node_idx);
 
         nav_msgs::Odometry odomAftPGOthis;
@@ -370,6 +374,7 @@ void pubPath( void )
     q.setY(odomAftPGO.pose.pose.orientation.y);
     q.setZ(odomAftPGO.pose.pose.orientation.z);
     transform.setRotation(q);
+    // std::cout << "[PGO:::pubPath transform] : " << odomAftPGO.pose.pose.position.x << ", " << odomAftPGO.pose.pose.position.y << ", " << odomAftPGO.pose.pose.position.z << ", " << odomAftPGO.pose.pose.orientation.x << ", " << odomAftPGO.pose.pose.orientation.y << ", " << odomAftPGO.pose.pose.orientation.z <<  ", " << odomAftPGO.pose.pose.orientation.w << std::endl;
     br.sendTransform(tf::StampedTransform(transform, odomAftPGO.header.stamp, "camera_init", "/aft_pgo"));
 } // pubPath
 
@@ -583,8 +588,11 @@ void process_pg()
 {
     while(1)
     {
+        
 		while ( !odometryBuf.empty() && !fullResBuf.empty() )
         {
+            // std::cout<<"[process_pg] odometryBuf.size(): "<<odometryBuf.size()<<std::endl;
+            // std::cout<<"[process_pg] fullResBuf.size(): "<<fullResBuf.size()<<std::endl;
             //
             // pop and check keyframe is or not  
             // 
@@ -594,6 +602,7 @@ void process_pg()
             if (odometryBuf.empty())
             {
                 mBuf.unlock();
+                printf("odometryBuf.empty()");
                 break;
             }
 
@@ -646,6 +655,7 @@ void process_pg()
             }
 
             if( ! isNowKeyFrame ) 
+                // std::cout<<"[process_pg] ! isNowKeyFrame"<<std::endl;
                 continue; 
 
             if( !gpsOffsetInitialized ) {
@@ -671,6 +681,7 @@ void process_pg()
                 keyFrameHeader.seq = pose_curr.seq;
                 keyFrameHeader.stamp = ros::Time::now();
                 pubKeyFramesId.publish(keyFrameHeader);
+               std::cout<<"pubKeyFramesId"<<std::endl;
             }
             keyframePosesUpdated.push_back(pose_curr); // init
             keyframeTimes.push_back(timeLaserOdometry);
@@ -1068,7 +1079,7 @@ int main(int argc, char **argv)
     downSizeFilterMapPGO.setLeafSize(mapVizFilterSize, mapVizFilterSize, mapVizFilterSize);
 
 	ros::Subscriber subLaserCloudFullRes = nh.subscribe<sensor_msgs::PointCloud2>("/velodyne_cloud_registered_local", 100, laserCloudFullResHandler);
-	ros::Subscriber subLaserOdometry = nh.subscribe<nav_msgs::Odometry>("/aft_mapped_to_init", 100, laserOdometryHandler);
+	ros::Subscriber subLaserOdometry = nh.subscribe<nav_msgs::Odometry>("/aft_mapped_to_init_high_frec", 100, laserOdometryHandler);
 	ros::Subscriber subGPS = nh.subscribe<sensor_msgs::NavSatFix>("/gps/fix", 100, gpsHandler);
 
 	pubOdomAftPGO = nh.advertise<nav_msgs::Odometry>("/aft_pgo_odom", 100);

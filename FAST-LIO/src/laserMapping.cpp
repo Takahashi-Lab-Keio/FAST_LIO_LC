@@ -906,26 +906,34 @@ int main(int argc, char** argv)
         if (flg_exit) break;
         ros::spinOnce();
         // 接收关键帧, 一直循环直到其中一个为空（理论上应该是idKeyFramesBuff先空）
+        // std::cout<<"idKeyFramesBuff.size(): "<<idKeyFramesBuff.size()<<std::endl;
+        // std::cout<<"cloudBuff.size(): "<<cloudBuff.size()<<std::endl;
+        // std::cout<<"pathKeyFrames.poses.size(): "<<pathKeyFrames.poses.size()<<std::endl;
         {
-            while( !cloudBuff.empty() && !idKeyFramesBuff.empty() ){
-                while( idKeyFramesBuff.front() > cloudBuff.front().first )
-                {
+            if(idKeyFramesBuff.size()<=pathKeyFrames.poses.size()){
+                while( !cloudBuff.empty() && !idKeyFramesBuff.empty() ){
+                    while( idKeyFramesBuff.front() > cloudBuff.front().first )
+                    {
+                        cloudBuff.pop();
+                    }
+                    // 此时idKeyFramesBuff.front() == cloudBuff.front().first
+                    // std::cout<<"idKeyFramesBuff.front(): "<<idKeyFramesBuff.front()<<std::endl;
+                    // std::cout<<"cloudBuff.front().first: "<<cloudBuff.front().first<<std::endl;
+                    assert(idKeyFramesBuff.front() == cloudBuff.front().first);
+                    idKeyFrames.push_back(idKeyFramesBuff.front());
+                    cloudKeyFrames.push_back( cloudBuff.front().second );
+                    idKeyFramesBuff.pop();
                     cloudBuff.pop();
                 }
-                // 此时idKeyFramesBuff.front() == cloudBuff.front().first
-                assert(idKeyFramesBuff.front() == cloudBuff.front().first);
-                idKeyFrames.push_back(idKeyFramesBuff.front());
-                cloudKeyFrames.push_back( cloudBuff.front().second );
-                idKeyFramesBuff.pop();
-                cloudBuff.pop();
-            }
-            assert(pathKeyFrames.poses.size() <= cloudKeyFrames.size() );   // 有可能id发过来了，但是节点还未更新
+                assert(pathKeyFrames.poses.size() <= cloudKeyFrames.size() );   // 有可能id发过来了，但是节点还未更新
 
-            // 记录最新关键帧的信息
-            if(pathKeyFrames.poses.size() >= 1){
-                lastKeyFramesId = idKeyFrames[pathKeyFrames.poses.size() - 1];
-                lastKeyFramesPose = pathKeyFrames.poses.back().pose;
+                // 记录最新关键帧的信息
+                if(pathKeyFrames.poses.size() >= 1){
+                    lastKeyFramesId = idKeyFrames[pathKeyFrames.poses.size() - 1];
+                    lastKeyFramesPose = pathKeyFrames.poses.back().pose;
+                }
             }
+            
         }
 
 
