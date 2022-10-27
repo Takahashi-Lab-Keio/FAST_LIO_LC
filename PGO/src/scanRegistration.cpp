@@ -211,6 +211,16 @@ void laserCloudHandler(const sensor_msgs::PointCloud2ConstPtr &laserCloudMsg)
                 continue;
             }
         }
+        // Ouster OS0-128 (e.g., MulRan)
+        else if (LIDAR_TYPE == "OS1-128" && N_SCANS == 128)
+        {   
+            scanID = int((angle + 22.5) / 2 + 0.5); // ouster os0-128 vfov is [-22.5, 22.5] see https://ouster.com/products/os1-lidar-sensor/
+            if (scanID > (N_SCANS - 1) || scanID < 0)
+            {
+                count--;
+                continue;
+            }
+        }
         else
         {
             //printf("wrong scan number\n");
@@ -481,9 +491,9 @@ int main(int argc, char **argv)
     nh.param<std::string>("lidar_type", LIDAR_TYPE, "KITTI");
     nh.param<double>("minimum_range", MINIMUM_RANGE, 0.1);
 
-    //printf("scan line number %d \n", N_SCANS);
+    printf("scan line number %d \n", N_SCANS);
 
-    if(N_SCANS != 16 && N_SCANS != 32 && N_SCANS != 64)
+    if(N_SCANS != 16 && N_SCANS != 32 && N_SCANS != 64 && N_SCANS != 128)
     {
         //printf("only support velodyne with 16, 32 or 64 scan line!");
         return 0;
