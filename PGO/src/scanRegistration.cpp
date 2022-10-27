@@ -212,9 +212,9 @@ void laserCloudHandler(const sensor_msgs::PointCloud2ConstPtr &laserCloudMsg)
             }
         }
         // Ouster OS0-128 (e.g., MulRan)
-        else if (LIDAR_TYPE == "OS0-128" && N_SCANS == 128)
+        else if (LIDAR_TYPE == "OS1-128" && N_SCANS == 128)
         {   
-            scanID = int((angle + 45) / 2 + 0.5); // ouster os0-128 vfov is [-45, 45] see https://ouster.com/products/os1-lidar-sensor/
+            scanID = int((angle + 22.5) / 2 + 0.5); // ouster os0-128 vfov is [-22.5, 22.5] see https://ouster.com/products/os1-lidar-sensor/
             if (scanID > (N_SCANS - 1) || scanID < 0)
             {
                 count--;
