@@ -164,6 +164,8 @@ void Preprocess::avia_handler(const livox_ros_driver::CustomMsg::ConstPtr &msg)
 
 void Preprocess::oust64_handler(const sensor_msgs::PointCloud2::ConstPtr &msg)
 {
+  // cout << "[Preprocess::oust64_handler] start" << endl;
+  // cout << "[Preprocess::oust64_handler] init" << endl;
   pl_surf.clear();
   pl_corn.clear();
   pl_full.clear();
@@ -174,12 +176,13 @@ void Preprocess::oust64_handler(const sensor_msgs::PointCloud2::ConstPtr &msg)
   pl_surf.reserve(plsize);
   if (feature_enabled)
   {
+    // cout << "[Preprocess::oust64_handler] for loop1" << endl;
     for (int i = 0; i < N_SCANS; i++)
     {
       pl_buff[i].clear();
       pl_buff[i].reserve(plsize);
     }
-
+    // cout << "[Preprocess::oust64_handler] for loop2" << endl;
     for (uint i = 0; i < plsize; i++)
     {
       double range = pl_orig.points[i].x * pl_orig.points[i].x + pl_orig.points[i].y * pl_orig.points[i].y + pl_orig.points[i].z * pl_orig.points[i].z;
@@ -205,15 +208,24 @@ void Preprocess::oust64_handler(const sensor_msgs::PointCloud2::ConstPtr &msg)
         pl_buff[pl_orig.points[i].ring].push_back(added_pt);
       }
     }
-
+    // cout << "[Preprocess::oust64_handler] for loop3" << endl;
     for (int j = 0; j < N_SCANS; j++)
     {
+      // cout << "[Preprocess::oust64_handler] for loop3 progress: "<<j << "/" <<  N_SCANS<< endl;
       PointCloudXYZI &pl = pl_buff[j];
+      // cout << "[Preprocess::oust64_handler] int linesize = pl.size();"<< endl;
       int linesize = pl.size();
+      // cout << "[Preprocess::oust64_handler] pl init end: "<< linesize << endl;
+      // int typesssize = typess.size();
       vector<orgtype> &types = typess[j];
+      // cout << "[Preprocess::oust64_handler] &types = typess[j]: " << endl;
+      // vector<orgtype> types;
       types.clear();
-      types.resize(linesize);
+      types.resize(linesize+1);
+
+      // cout << "[Preprocess::oust64_handler] types init end"<< endl;
       linesize--;
+      // cout << "[Preprocess::oust64_handler] for loop3.1"<< endl;
       for (uint i = 0; i < linesize; i++)
       {
         types[i].range = sqrt(pl[i].x * pl[i].x + pl[i].y * pl[i].y);
@@ -223,8 +235,11 @@ void Preprocess::oust64_handler(const sensor_msgs::PointCloud2::ConstPtr &msg)
         types[i].dista = vx * vx + vy * vy + vz * vz;
       }
       types[linesize].range = sqrt(pl[linesize].x * pl[linesize].x + pl[linesize].y * pl[linesize].y);
+      // cout << "[Preprocess::oust64_handler] give_feature"<< endl;
       give_feature(pl, types);
+      // cout << "[Preprocess::oust64_handler] for loop3 progres end"<< endl;
     }
+    
   }
   else
   {
@@ -261,6 +276,7 @@ void Preprocess::oust64_handler(const sensor_msgs::PointCloud2::ConstPtr &msg)
   }
   // pub_func(pl_surf, pub_full, msg->header.stamp);
   // pub_func(pl_surf, pub_corn, msg->header.stamp);
+  // cout << "[Preprocess::oust64_handler] end" << endl;
 }
 
 #define MAX_LINE_NUM 64

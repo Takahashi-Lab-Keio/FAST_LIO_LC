@@ -903,12 +903,15 @@ int main(int argc, char** argv)
     uint32_t count = 1;
     while (status)
     {
+        // std::cout<<" MAin: Step 1"<<std::endl;
+
         if (flg_exit) break;
         ros::spinOnce();
         // 接收关键帧, 一直循环直到其中一个为空（理论上应该是idKeyFramesBuff先空）
         // std::cout<<"idKeyFramesBuff.size(): "<<idKeyFramesBuff.size()<<std::endl;
         // std::cout<<"cloudBuff.size(): "<<cloudBuff.size()<<std::endl;
         // std::cout<<"pathKeyFrames.poses.size(): "<<pathKeyFrames.poses.size()<<std::endl;
+        // std::cout<<"cloudKeyFrames.size(): "<<cloudKeyFrames.size()<<std::endl;
         {
             if(idKeyFramesBuff.size()<=pathKeyFrames.poses.size()){
                 while( !cloudBuff.empty() && !idKeyFramesBuff.empty() ){
@@ -925,6 +928,8 @@ int main(int argc, char** argv)
                     idKeyFramesBuff.pop();
                     cloudBuff.pop();
                 }
+                std::cout<<"pathKeyFrames.poses.size(): "<<pathKeyFrames.poses.size()<<std::endl;
+                std::cout<<"cloudKeyFrames.size(): "<<cloudKeyFrames.size()<<std::endl;
                 assert(pathKeyFrames.poses.size() <= cloudKeyFrames.size() );   // 有可能id发过来了，但是节点还未更新
 
                 // 记录最新关键帧的信息
@@ -937,7 +942,7 @@ int main(int argc, char** argv)
         }
 
 
-
+        // std::cout<<" MAin: Step 2"<<std::endl;
         if(sync_packages(Measures))
         {
             if (flg_reset)
@@ -1054,7 +1059,7 @@ int main(int argc, char** argv)
                         
                         PointCloudXYZI::Ptr keyframesTmp(new PointCloudXYZI());
                         Eigen::Isometry3d poseTmp;
-                        assert(pathKeyFrames.poses.size() <= cloudKeyFrames.size() );   // 有可能id发过来了，但是节点还未更新
+                        // assert(pathKeyFrames.poses.size() <= cloudKeyFrames.size() );   // 有可能id发过来了，但是节点还未更新
                         int keyFramesNum = pathKeyFrames.poses.size();
                         
                         downSizeFilterMap.setInputCloud(cloudKeyFrames[thisKeyInd]);
@@ -1126,7 +1131,7 @@ int main(int argc, char** argv)
                 }
             }
             ++count;
-
+            // std::cout<<" MAin: Step 3"<<std::endl;
             /*** Segment the map in lidar FOV ***/
             lasermap_fov_segment();
 
@@ -1179,6 +1184,7 @@ int main(int argc, char** argv)
 
             t2 = omp_get_wtime();
 
+            // std::cout<<" MAin: Step 4"<<std::endl;
             /*** iterated state estimation ***/
             double t_update_start = omp_get_wtime();
             double solve_H_time = 0;

@@ -417,7 +417,7 @@ void runISAM2opt(void)
 
     isamCurrentEstimate = isam->calculateEstimate();
     updatePoses();
-    pubPath();  // 每优化一次就输出一次优化后的位姿
+    // pubPath();  // 每优化一次就输出一次优化后的位姿
 }
 
 pcl::PointCloud<PointType>::Ptr transformPointCloud(pcl::PointCloud<PointType>::Ptr cloudIn, gtsam::Pose3 transformIn)
@@ -955,7 +955,7 @@ void process_viz_path(void)
     while (ros::ok()) {
         rate.sleep();
         if(recentIdxUpdated > 1) {
-            pubPath();
+            // pubPath();
         }
     }
 }

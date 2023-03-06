@@ -41,7 +41,7 @@
 #include "aloam_velodyne/common.h"
 #include "aloam_velodyne/tic_toc.h"
 #include <nav_msgs/Odometry.h>
-#include <opencv/cv.h>
+#include <opencv2/core.hpp>
 #include <pcl_conversions/pcl_conversions.h>
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
@@ -115,6 +115,7 @@ void removeClosedPointCloud(const pcl::PointCloud<PointT> &cloud_in,
 
 void laserCloudHandler(const sensor_msgs::PointCloud2ConstPtr &laserCloudMsg)
 {
+    // std::cout << "laserCloudHandler" <<std::endl;
     if (!systemInited)
     { 
         systemInitCount++;
@@ -211,9 +212,18 @@ void laserCloudHandler(const sensor_msgs::PointCloud2ConstPtr &laserCloudMsg)
                 continue;
             }
         }
+        else if (LIDAR_TYPE == "OS1-128" && N_SCANS == 128)
+        {   
+            scanID = int((angle + 22.5) / 2 + 0.5); // ouster os1-64 vfov is [-22.5, 22.5] see https://ouster.com/products/os1-lidar-sensor/
+            if (scanID > (N_SCANS - 1) || scanID < 0)
+            {
+                count--;
+                continue;
+            }
+        }
         else
         {
-            //printf("wrong scan number\n");
+            printf("wrong scan number\n");
             ROS_BREAK();
         }
         ////printf("angle %f scanID %d \n", angle, scanID);
@@ -483,7 +493,7 @@ int main(int argc, char **argv)
 
     //printf("scan line number %d \n", N_SCANS);
 
-    if(N_SCANS != 16 && N_SCANS != 32 && N_SCANS != 64)
+    if(N_SCANS != 16 && N_SCANS != 32 && N_SCANS != 64 && N_SCANS != 128)
     {
         //printf("only support velodyne with 16, 32 or 64 scan line!");
         return 0;
