@@ -36,6 +36,8 @@
 #include <pcl/octree/octree_pointcloud_voxelcentroid.h>
 #include <pcl/filters/crop_box.h> 
 #include <pcl_conversions/pcl_conversions.h>
+#include <pcl/point_types.h>
+
 
 #include <ros/ros.h>
 #include <sensor_msgs/Imu.h>
@@ -998,9 +1000,9 @@ void pubMap(void)
         counter++;
     }
     mKF.unlock(); 
-
-    // downSizeFilterMapPGO.setInputCloud(laserCloudMapPGO);
-    // downSizeFilterMapPGO.filter(*laserCloudMapPGO);
+    cout << "RAW Map point_size: " << laserCloudMapPGO->points.size() << endl;
+    downSizeFilterMapPGO.setInputCloud(laserCloudMapPGO);
+    downSizeFilterMapPGO.filter(*laserCloudMapPGO);
     // cout << "set laserCloudMapPGO_wo_black start" << endl;
     if(laserCloudMapPGO->points.size()>0){
         int color_point_size = 0;
@@ -1012,6 +1014,7 @@ void pubMap(void)
         // cout << "set laserCloudMapPGO_wo_black step2" << endl;
         // cout << "color_point_size: " << color_point_size << endl;
         pcl::PointCloud<PointType>::Ptr laserCloudMapPGO_wo_black(new pcl::PointCloud<PointType>());
+        pcl::PointCloud<pcl::PointXYZRGB>::Ptr laserCloudMapPGO_wo_black2(new pcl::PointCloud<pcl::PointXYZRGB>());
         // cout << "set laserCloudMapPGO_wo_black step3" << endl;
         laserCloudMapPGO_wo_black->points.resize(color_point_size);
         // cout << "set laserCloudMapPGO_wo_black step4" << endl;
@@ -1031,6 +1034,11 @@ void pubMap(void)
         // cout << "set laserCloudMapPGO_wo_black step4" << endl;
         sensor_msgs::PointCloud2 laserCloudMapPGOMsg;
         pcl::toROSMsg(*laserCloudMapPGO_wo_black, laserCloudMapPGOMsg);
+        
+        cout << "Save pcd" << endl;
+        pcl::fromROSMsg(laserCloudMapPGOMsg, *laserCloudMapPGO_wo_black2);
+        pcl::io::savePCDFileBinary(save_directory+"/pgo_aft_map.pcd", *laserCloudMapPGO_wo_black2); // scan 
+        // pcl::io::savePCDFileASCII(save_directory+"/pgo_aft_map.pcd", *laserCloudMapPGO_wo_black); // scan 
         laserCloudMapPGOMsg.header.frame_id = "camera_init";
         pubMapAftPGO.publish(laserCloudMapPGOMsg);
         cout << "Map is updated color_point_size: " << color_point_size << endl;
