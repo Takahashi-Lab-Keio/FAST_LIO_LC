@@ -1104,8 +1104,8 @@ int main(int argc, char **argv)
     scManager.setSCdistThres(scDistThres);
     scManager.setMaximumRadius(scMaximumRadius);
 
-    // float filter_size = 0.15;
-    float filter_size = 0.01; 
+    float filter_size = 0.15;
+    // float filter_size = 0.01; 
     downSizeFilterScancontext.setLeafSize(filter_size, filter_size, filter_size);
     downSizeFilterICP.setLeafSize(filter_size, filter_size, filter_size);
 
