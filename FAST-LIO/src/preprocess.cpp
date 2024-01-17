@@ -215,6 +215,7 @@ void Preprocess::oust64_handler(const sensor_msgs::PointCloud2::ConstPtr &msg)
       PointCloudXYZI &pl = pl_buff[j];
       // cout << "[Preprocess::oust64_handler] int linesize = pl.size();"<< endl;
       int linesize = pl.size();
+
       // cout << "[Preprocess::oust64_handler] pl init end: "<< linesize << endl;
       // int typesssize = typess.size();
       vector<orgtype> &types = typess[j];
@@ -222,22 +223,26 @@ void Preprocess::oust64_handler(const sensor_msgs::PointCloud2::ConstPtr &msg)
       // vector<orgtype> types;
       types.clear();
       types.resize(linesize+1);
-
-      // cout << "[Preprocess::oust64_handler] types init end"<< endl;
-      linesize--;
-      // cout << "[Preprocess::oust64_handler] for loop3.1"<< endl;
-      for (uint i = 0; i < linesize; i++)
+      if(linesize>0)
       {
-        types[i].range = sqrt(pl[i].x * pl[i].x + pl[i].y * pl[i].y);
-        vx = pl[i].x - pl[i + 1].x;
-        vy = pl[i].y - pl[i + 1].y;
-        vz = pl[i].z - pl[i + 1].z;
-        types[i].dista = vx * vx + vy * vy + vz * vz;
+        // cout << "[Preprocess::oust64_handler] types init end"<< endl;
+        linesize--;
+
+        // cout << "[Preprocess::oust64_handler] for loop3.1"<< endl;
+        for (uint i = 0; i < linesize; i++)
+        {
+          types[i].range = sqrt(pl[i].x * pl[i].x + pl[i].y * pl[i].y);
+          vx = pl[i].x - pl[i + 1].x;
+          vy = pl[i].y - pl[i + 1].y;
+          vz = pl[i].z - pl[i + 1].z;
+          types[i].dista = vx * vx + vy * vy + vz * vz;
+        }
+        types[linesize].range = sqrt(pl[linesize].x * pl[linesize].x + pl[linesize].y * pl[linesize].y);
+        //cout << "[Preprocess::oust64_handler] give_feature"<< endl;
+        give_feature(pl, types);
       }
-      types[linesize].range = sqrt(pl[linesize].x * pl[linesize].x + pl[linesize].y * pl[linesize].y);
-      // cout << "[Preprocess::oust64_handler] give_feature"<< endl;
-      give_feature(pl, types);
-      // cout << "[Preprocess::oust64_handler] for loop3 progres end"<< endl;
+      
+      //cout << "[Preprocess::oust64_handler] for loop3 progres end"<< endl;
     }
     
   }
