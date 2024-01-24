@@ -159,7 +159,7 @@ void pointAssociateToMap(PointType const *const pi, PointType *const po)
 	po->x = point_w.x();
 	po->y = point_w.y();
 	po->z = point_w.z();
-	po->a = pi->a;
+	po->intensity = pi->intensity;
 	//po->intensity = 1.0;
 }
 
@@ -170,7 +170,7 @@ void pointAssociateTobeMapped(PointType const *const pi, PointType *const po)
 	po->x = point_curr.x();
 	po->y = point_curr.y();
 	po->z = point_curr.z();
-	po->a = pi->a;
+	po->intensity = pi->intensity;
 }
 
 void laserCloudCornerLastHandler(const sensor_msgs::PointCloud2ConstPtr &laserCloudCornerLast2)

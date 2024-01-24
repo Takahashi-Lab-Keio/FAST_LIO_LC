@@ -321,16 +321,16 @@ pcl::PointCloud<PointType>::Ptr local2global(const pcl::PointCloud<PointType>::P
     #pragma omp parallel for num_threads(numberOfCores)
     for (int i = 0; i < cloudSize; ++i)
     {
-        const auto &pointFrom = cloudIn->points[i];
-        cloudOut->points[i].x = transCur(0,0) * pointFrom.x + transCur(0,1) * pointFrom.y + transCur(0,2) * pointFrom.z + transCur(0,3);
-        cloudOut->points[i].y = transCur(1,0) * pointFrom.x + transCur(1,1) * pointFrom.y + transCur(1,2) * pointFrom.z + transCur(1,3);
-        cloudOut->points[i].z = transCur(2,0) * pointFrom.x + transCur(2,1) * pointFrom.y + transCur(2,2) * pointFrom.z + transCur(2,3);
-        cloudOut->points[i].r = pointFrom.r;
-        cloudOut->points[i].g = pointFrom.g;
-        cloudOut->points[i].b = pointFrom.b;
-        cloudOut->points[i].a = pointFrom.a;
+        // const auto &pointFrom = cloudIn->points[i];
+        cloudOut->points[i].x = transCur(0,0) * cloudIn->points[i].x + transCur(0,1) * cloudIn->points[i].y + transCur(0,2) * cloudIn->points[i].z + transCur(0,3);
+        cloudOut->points[i].y = transCur(1,0) * cloudIn->points[i].x + transCur(1,1) * cloudIn->points[i].y + transCur(1,2) * cloudIn->points[i].z + transCur(1,3);
+        cloudOut->points[i].z = transCur(2,0) * cloudIn->points[i].x + transCur(2,1) * cloudIn->points[i].y + transCur(2,2) * cloudIn->points[i].z + transCur(2,3);
+        cloudOut->points[i].intensity = cloudIn->points[i].intensity;
+        cloudOut->points[i].normal_x = cloudIn->points[i].normal_x;
+        cloudOut->points[i].normal_y = cloudIn->points[i].normal_y;
+        
     }
-
+    std::cout << "pointFrom..normal_x " << cloudOut->points[0].normal_x << " pointFrom..normal_y: " << cloudOut->points[0].normal_y << std::endl;
     return cloudOut;
 }
 
@@ -447,7 +447,7 @@ pcl::PointCloud<PointType>::Ptr transformPointCloud(pcl::PointCloud<PointType>::
         cloudOut->points[i].x = transCur(0,0) * pointFrom->x + transCur(0,1) * pointFrom->y + transCur(0,2) * pointFrom->z + transCur(0,3);
         cloudOut->points[i].y = transCur(1,0) * pointFrom->x + transCur(1,1) * pointFrom->y + transCur(1,2) * pointFrom->z + transCur(1,3);
         cloudOut->points[i].z = transCur(2,0) * pointFrom->x + transCur(2,1) * pointFrom->y + transCur(2,2) * pointFrom->z + transCur(2,3);
-        cloudOut->points[i].a = pointFrom->a;
+        cloudOut->points[i].intensity = pointFrom->intensity;
     }
     return cloudOut;
 } // transformPointCloud
@@ -678,8 +678,16 @@ void process_pg()
             downSizeFilterScancontext.setInputCloud(thisKeyFrame);
             downSizeFilterScancontext.filter(*thisKeyFrameDS);
 
+
+            // print out normal_x and normal_y of each point in thisKeyFrame
+            // for (int i = 0; i < thisKeyFrame->size(); ++i){
+            //     std::cout<< "thisKeyFrame i:" << i << " normal_x: " << thisKeyFrame->points[i].normal_x << " normal_y: " << thisKeyFrame->points[i].normal_y << std::endl;    
+            // }
+            std::cout<< "thisKeyFrame i: 0 normal_x: " << thisKeyFrame->points[0].normal_x << " normal_y: " << thisKeyFrame->points[0].normal_y << std::endl;    
+
             mKF.lock(); 
-            keyframeLaserClouds.push_back(thisKeyFrameDS);
+            // keyframeLaserClouds.push_back(thisKeyFrameDS);
+            keyframeLaserClouds.push_back(thisKeyFrame);
             keyframePoses.push_back(pose_curr);
             {
                 // 发布关键帧id
@@ -692,7 +700,8 @@ void process_pg()
             keyframePosesUpdated.push_back(pose_curr); // init
             keyframeTimes.push_back(timeLaserOdometry);
 
-            scManager.makeAndSaveScancontextAndKeys(*thisKeyFrameDS);
+            // scManager.makeAndSaveScancontextAndKeys(*thisKeyFrameDS);
+            scManager.makeAndSaveScancontextAndKeys(*thisKeyFrame);
 
             laserCloudMapPGORedraw = true;
             mKF.unlock(); 
@@ -1005,43 +1014,22 @@ void pubMap(void)
     downSizeFilterMapPGO.filter(*laserCloudMapPGO);
     // cout << "set laserCloudMapPGO_wo_black start" << endl;
     if(laserCloudMapPGO->points.size()>0){
-        int color_point_size = 0;
-        for(int point_index =0; point_index < laserCloudMapPGO->points.size(); point_index++){
-            if(laserCloudMapPGO->points[point_index].r != 0){
-                color_point_size++;
-            }
-        }
+
         // cout << "set laserCloudMapPGO_wo_black step2" << endl;
         // cout << "color_point_size: " << color_point_size << endl;
-        pcl::PointCloud<PointType>::Ptr laserCloudMapPGO_wo_black(new pcl::PointCloud<PointType>());
-        pcl::PointCloud<pcl::PointXYZRGB>::Ptr laserCloudMapPGO_wo_black2(new pcl::PointCloud<pcl::PointXYZRGB>());
         // cout << "set laserCloudMapPGO_wo_black step3" << endl;
-        laserCloudMapPGO_wo_black->points.resize(color_point_size);
+        // laserCloudMapPGO_wo_black->points.resize(color_point_size);
         // cout << "set laserCloudMapPGO_wo_black step4" << endl;
-        color_point_size = 0;
-        for(int point_index =0; point_index < laserCloudMapPGO->points.size(); point_index++){
-            if(laserCloudMapPGO->points[point_index].r != 0){
-                laserCloudMapPGO_wo_black->points[color_point_size].x = laserCloudMapPGO->points[point_index].x;
-                laserCloudMapPGO_wo_black->points[color_point_size].y = laserCloudMapPGO->points[point_index].y;
-                laserCloudMapPGO_wo_black->points[color_point_size].z = laserCloudMapPGO->points[point_index].z;
-                laserCloudMapPGO_wo_black->points[color_point_size].r = laserCloudMapPGO->points[point_index].r;
-                laserCloudMapPGO_wo_black->points[color_point_size].g = laserCloudMapPGO->points[point_index].g;
-                laserCloudMapPGO_wo_black->points[color_point_size].b = laserCloudMapPGO->points[point_index].b;
-                laserCloudMapPGO_wo_black->points[color_point_size].a = laserCloudMapPGO->points[point_index].a;
-                color_point_size++;
-            }
-        }
         // cout << "set laserCloudMapPGO_wo_black step4" << endl;
         sensor_msgs::PointCloud2 laserCloudMapPGOMsg;
-        pcl::toROSMsg(*laserCloudMapPGO_wo_black, laserCloudMapPGOMsg);
+        pcl::toROSMsg(*laserCloudMapPGO, laserCloudMapPGOMsg);
         
         cout << "Save pcd" << endl;
-        pcl::fromROSMsg(laserCloudMapPGOMsg, *laserCloudMapPGO_wo_black2);
-        pcl::io::savePCDFileBinary(save_directory+"/pgo_aft_map.pcd", *laserCloudMapPGO_wo_black2); // scan 
+        pcl::io::savePCDFileBinary(save_directory+"/pgo_aft_map.pcd", *laserCloudMapPGO); // scan 
         // pcl::io::savePCDFileASCII(save_directory+"/pgo_aft_map.pcd", *laserCloudMapPGO_wo_black); // scan 
         laserCloudMapPGOMsg.header.frame_id = "camera_init";
         pubMapAftPGO.publish(laserCloudMapPGOMsg);
-        cout << "Map is updated color_point_size: " << color_point_size << endl;
+        // cout << "Map is updated color_point_size: " << color_point_size << endl;
     }
     
 }
@@ -1115,7 +1103,8 @@ int main(int argc, char **argv)
     float filter_size = 0.15;
     // float filter_size = 0.01; 
     downSizeFilterScancontext.setLeafSize(filter_size, filter_size, filter_size);
-    downSizeFilterICP.setLeafSize(filter_size, filter_size, filter_size);
+    
+    .setLeafSize(filter_size, filter_size, filter_size);
 
     double mapVizFilterSize;
 	nh.param<double>("mapviz_filter_size", mapVizFilterSize, 0.4); // pose assignment every k frames 

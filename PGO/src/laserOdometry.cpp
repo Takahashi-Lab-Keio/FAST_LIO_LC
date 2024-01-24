@@ -114,7 +114,7 @@ void TransformToStart(PointType const *const pi, PointType *const po)
     //interpolation ratio
     double s;
     if (DISTORTION)
-        s = (pi->a - int(pi->a)) / SCAN_PERIOD;
+        s = (pi->intensity - int(pi->intensity)) / SCAN_PERIOD;
     else
         s = 1.0;
     //s = 1;
@@ -126,15 +126,14 @@ void TransformToStart(PointType const *const pi, PointType *const po)
     po->x = un_point.x();
     po->y = un_point.y();
     po->z = un_point.z();
-    po->r = pi->r;
-    po->g = pi->g;
-    po->b = pi->b;
-    po->a = pi->a;
+    po->intensity = pi->intensity;
+    po->normal_x = pi->normal_x;
+    po->normal_y = pi->normal_y;
 }
 
 // transform all lidar points to the start of the next frame
 
-void TransformToEnd(PointType const *const pi, pcl::PointXYZRGBA *const po)
+void TransformToEnd(PointType const *const pi, pcl::PointXYZINormal *const po)
 {
     // undistort point first
     PointType un_point_tmp;
@@ -146,12 +145,11 @@ void TransformToEnd(PointType const *const pi, pcl::PointXYZRGBA *const po)
     po->x = point_end.x();
     po->y = point_end.y();
     po->z = point_end.z();
-    po->r = pi->r;
-    po->g = pi->g;
-    po->b = pi->b;
+    po->normal_x = pi->normal_x;
+    po->normal_y = pi->normal_y;
 
     //Remove distortion time info
-    po->a = int(pi->a);
+    po->intensity = int(pi->intensity);
 }
 
 void laserCloudSharpHandler(const sensor_msgs::PointCloud2ConstPtr &cornerPointsSharp2)

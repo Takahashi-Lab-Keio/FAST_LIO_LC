@@ -132,7 +132,7 @@ void laserCloudHandler(const sensor_msgs::PointCloud2ConstPtr &laserCloudMsg)
     std::vector<int> scanStartInd(N_SCANS, 0);
     std::vector<int> scanEndInd(N_SCANS, 0);
 
-    pcl::PointCloud<pcl::PointXYZRGBA> laserCloudIn;
+    pcl::PointCloud<pcl::PointXYZINormal> laserCloudIn;
     pcl::fromROSMsg(*laserCloudMsg, laserCloudIn);
     std::vector<int> indices;
 
@@ -165,9 +165,10 @@ void laserCloudHandler(const sensor_msgs::PointCloud2ConstPtr &laserCloudMsg)
         point.x = laserCloudIn.points[i].x;
         point.y = laserCloudIn.points[i].y;
         point.z = laserCloudIn.points[i].z;
-        point.r = laserCloudIn.points[i].r;
-        point.g = laserCloudIn.points[i].g;
-        point.b = laserCloudIn.points[i].b;
+        point.normal_x = laserCloudIn.points[i].normal_x;
+        point.normal_y = laserCloudIn.points[i].normal_y;
+
+        // std::cout << "point.normal_x " << point.normal_x << " point.normal_y: " << point.normal_y << std::endl;
 
         float angle = atan(point.z / sqrt(point.x * point.x + point.y * point.y)) * 180 / M_PI;
         int scanID = 0;
@@ -262,7 +263,7 @@ void laserCloudHandler(const sensor_msgs::PointCloud2ConstPtr &laserCloudMsg)
         }
 
         float relTime = (ori - startOri) / (endOri - startOri);
-        point.a = scanID + scanPeriod * relTime;
+        point.intensity = scanID + scanPeriod * relTime;
         laserCloudScans[scanID].push_back(point); 
     }
     

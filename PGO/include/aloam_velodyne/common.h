@@ -40,7 +40,8 @@
 
 #include <pcl/point_types.h>
 
-typedef pcl::PointXYZRGBA PointType;
+// typedef pcl::PointXYZRGBA PointType;
+typedef pcl::PointXYZINormal PointType;
 
 inline double rad2deg(double radians)
 {

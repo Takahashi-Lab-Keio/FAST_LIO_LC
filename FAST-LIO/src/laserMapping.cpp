@@ -74,6 +74,7 @@
 #include <pcl/kdtree/kdtree_flann.h>
 #include <map>
 #include <unordered_map>
+#include <ytlab_handheld_sensoring_system_modules/SemanticRGBD.h>
 
 #define INIT_TIME           (0.1)
 #define LASER_POINT_COV     (0.001)
@@ -108,6 +109,7 @@ int    iterCount = 0, feats_down_size = 0, NUM_MAX_ITERATIONS = 0, laserCloudVal
 bool   point_selected_surf[100000] = {0};
 bool   lidar_pushed, flg_reset, flg_exit = false, flg_EKF_inited;
 bool   scan_pub_en = false, dense_pub_en = false, scan_body_pub_en = false;
+bool   semantic_rgbd_mode = false;
 bool    recontructKdTree = false;
 bool    updateState = false;
 int     updateFrequency = 100;
@@ -259,6 +261,8 @@ void RGBpointBodyLidarToIMU(PointType const * const pi, PointType * const po)
     po->y = p_body_imu(1);
     po->z = p_body_imu(2);
     po->intensity = pi->intensity;
+    po->normal_x = pi->normal_x;
+    po->normal_y = pi->normal_y;
 }
 
 void RGBpointBodyLidarToIMU(pcl::PointXYZRGBA const * const pi, pcl::PointXYZRGBA * const po)
@@ -343,6 +347,31 @@ void standard_pcl_cbk(const sensor_msgs::PointCloud2::ConstPtr &msg)
     PointCloudXYZI::Ptr  ptr(new PointCloudXYZI());
     p_pre->process(msg, ptr);
     lidar_buffer.push_back(ptr);
+    time_buffer.push_back(msg->header.stamp.toSec());
+    last_timestamp_lidar = msg->header.stamp.toSec();
+    s_plot11[scan_count] = omp_get_wtime() - preprocess_start_time;
+    mtx_buffer.unlock();
+    sig_buffer.notify_all();
+}
+
+void semantic_rgbd_cbk(const ytlab_handheld_sensoring_system_modules::SemanticRGBDConstPtr& rgbd_msg)
+{
+    mtx_buffer.lock();
+    scan_count ++;
+    double preprocess_start_time = omp_get_wtime();
+    sensor_msgs::PointCloud2::ConstPtr msg = boost::make_shared<sensor_msgs::PointCloud2>(rgbd_msg->cloud);
+    if (msg->header.stamp.toSec() < last_timestamp_lidar)
+    {
+        ROS_ERROR("lidar loop back, clear buffer");
+        lidar_buffer.clear();
+    }
+
+    PointCloudXYZI::Ptr  ptr(new PointCloudXYZI());
+    p_pre->process(msg, ptr, rgbd_msg->seq.data);
+    lidar_buffer.push_back(ptr);
+    // for(int point_index=0;point_index<lidar_buffer[lidar_buffer.size()-1]->points.size();point_index++){
+    //     std::cout<<point_index <<" "<<lidar_buffer[lidar_buffer.size()-1]->points[point_index].normal_x<<" "<<lidar_buffer[lidar_buffer.size()-1]->points[point_index].normal_y<<std::endl; 
+    // }
     time_buffer.push_back(msg->header.stamp.toSec());
     last_timestamp_lidar = msg->header.stamp.toSec();
     s_plot11[scan_count] = omp_get_wtime() - preprocess_start_time;
@@ -796,6 +825,7 @@ int main(int argc, char** argv)
     ros::NodeHandle nh;
 
     data_seq = 0;
+    nh.param<bool>("semantic_rgbd_mode",semantic_rgbd_mode,false);
     nh.param<bool>("publish/scan_publish_en",scan_pub_en,1);
     nh.param<bool>("publish/dense_publish_en",dense_pub_en,0);
     nh.param<bool>("publish/scan_bodyframe_pub_en",scan_body_pub_en,1);
@@ -883,9 +913,18 @@ int main(int argc, char** argv)
     //     cout << "~~~~"<<ROOT_DIR<<" doesn't exist" << endl;
 
     /*** ROS subscribe initialization ***/
-    ros::Subscriber sub_pcl = p_pre->lidar_type == AVIA ? \
-        nh.subscribe(lid_topic, 200000, livox_pcl_cbk) : \
-        nh.subscribe(lid_topic, 200000, standard_pcl_cbk);
+    ros::Subscriber sub_pcl;
+    if(p_pre->lidar_type == AVIA){
+        sub_pcl = nh.subscribe(lid_topic, 200000, livox_pcl_cbk);
+    }
+    else{
+        if(semantic_rgbd_mode){
+            sub_pcl = nh.subscribe(lid_topic, 200000, semantic_rgbd_cbk);
+        }
+        else{
+            sub_pcl = nh.subscribe(lid_topic, 200000, standard_pcl_cbk);
+        }
+    }
     ros::Subscriber sub_imu = nh.subscribe(imu_topic, 200000, imu_cbk);
     ros::Subscriber sub_keyframes = nh.subscribe(keyFrame_topic, 10, keyFrame_cbk);
     ros::Subscriber sub_keyframes_id = nh.subscribe(keyFrame_id_topic, 10, keyFrame_id_cbk);

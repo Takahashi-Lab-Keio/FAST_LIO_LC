@@ -332,6 +332,7 @@ void ImuProcess::UndistortPcl(const MeasureGroup &meas, esekfom::esekf<state_ikf
       it_pcl->x = P_compensate(0);
       it_pcl->y = P_compensate(1);
       it_pcl->z = P_compensate(2);
+      // std::cout << "it_pcl->normal_x " << it_pcl->normal_x << " it_pcl->normal_y :"<< it_pcl->normal_y << std::endl;
 
       if (it_pcl == pcl_out.points.begin()) break;
     }

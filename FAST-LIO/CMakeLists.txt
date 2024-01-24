@@ -54,6 +54,7 @@ find_package(catkin REQUIRED COMPONENTS
   livox_ros_driver
   message_generation
   eigen_conversions
+  ytlab_handheld_sensoring_system_modules
 )
 
 find_package(Eigen3 REQUIRED)

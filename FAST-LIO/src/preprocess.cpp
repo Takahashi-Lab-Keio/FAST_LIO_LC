@@ -46,12 +46,12 @@ void Preprocess::process(const livox_ros_driver::CustomMsg::ConstPtr &msg, Point
   *pcl_out = pl_surf;
 }
 
-void Preprocess::process(const sensor_msgs::PointCloud2::ConstPtr &msg, PointCloudXYZI::Ptr &pcl_out)
+void Preprocess::process(const sensor_msgs::PointCloud2::ConstPtr &msg, PointCloudXYZI::Ptr &pcl_out, int seq)
 {
   switch (lidar_type)
   {
   case OUST64:
-    oust64_handler(msg);
+    oust64_handler(msg, seq);
     break;
 
   case VELO16:
@@ -162,7 +162,7 @@ void Preprocess::avia_handler(const livox_ros_driver::CustomMsg::ConstPtr &msg)
   }
 }
 
-void Preprocess::oust64_handler(const sensor_msgs::PointCloud2::ConstPtr &msg)
+void Preprocess::oust64_handler(const sensor_msgs::PointCloud2::ConstPtr &msg, int seq)
 {
   // cout << "[Preprocess::oust64_handler] start" << endl;
   // cout << "[Preprocess::oust64_handler] init" << endl;
@@ -193,9 +193,10 @@ void Preprocess::oust64_handler(const sensor_msgs::PointCloud2::ConstPtr &msg)
       added_pt.y = pl_orig.points[i].y;
       added_pt.z = pl_orig.points[i].z;
       added_pt.intensity = pl_orig.points[i].intensity;
-      added_pt.normal_x = 0;
-      added_pt.normal_y = 0;
+      added_pt.normal_x = seq;
+      added_pt.normal_y = i;
       added_pt.normal_z = 0;
+      // std::cout << "added_pt.normal_x " << added_pt.normal_x << " added_pt.normal_y:"<< added_pt.normal_y << std::endl;
       double yaw_angle = atan2(added_pt.y, added_pt.x) * 57.3;
       if (yaw_angle >= 180.0)
         yaw_angle -= 360.0;
@@ -265,8 +266,8 @@ void Preprocess::oust64_handler(const sensor_msgs::PointCloud2::ConstPtr &msg)
       added_pt.y = pl_orig.points[i].y;
       added_pt.z = pl_orig.points[i].z;
       added_pt.intensity = pl_orig.points[i].intensity;
-      added_pt.normal_x = 0;
-      added_pt.normal_y = 0;
+      added_pt.normal_x = seq;
+      added_pt.normal_y = i;
       added_pt.normal_z = 0;
       double yaw_angle = atan2(added_pt.y, added_pt.x) * 57.3;
       if (yaw_angle >= 180.0)
@@ -746,6 +747,8 @@ void Preprocess::give_feature(pcl::PointCloud<PointType> &pl, vector<orgtype> &t
         ap.y = pl[j].y;
         ap.z = pl[j].z;
         ap.intensity = pl[j].intensity;
+        ap.normal_x = pl[j].normal_x;
+        ap.normal_y = pl[j].normal_y;
         ap.curvature = pl[j].curvature;
         pl_surf.push_back(ap);
 
@@ -772,7 +775,10 @@ void Preprocess::give_feature(pcl::PointCloud<PointType> &pl, vector<orgtype> &t
         ap.x /= (j-last_surface);
         ap.y /= (j-last_surface);
         ap.z /= (j-last_surface);
+        ap.normal_x = pl[j].normal_x;
+        ap.normal_y = pl[j].normal_y;
         ap.intensity /= (j-last_surface);
+        
         ap.curvature /= (j-last_surface);
         pl_surf.push_back(ap);
       }
