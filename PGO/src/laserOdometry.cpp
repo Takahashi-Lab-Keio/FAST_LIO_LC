@@ -127,13 +127,13 @@ void TransformToStart(PointType const *const pi, PointType *const po)
     po->y = un_point.y();
     po->z = un_point.z();
     po->intensity = pi->intensity;
-    po->normal_x = pi->normal_x;
-    po->normal_y = pi->normal_y;
+    // po->normal_x = pi->normal_x;
+    // po->normal_y = pi->normal_y;
 }
 
 // transform all lidar points to the start of the next frame
 
-void TransformToEnd(PointType const *const pi, pcl::PointXYZINormal *const po)
+void TransformToEnd(PointType const *const pi, PointType *const po)
 {
     // undistort point first
     PointType un_point_tmp;
@@ -145,8 +145,8 @@ void TransformToEnd(PointType const *const pi, pcl::PointXYZINormal *const po)
     po->x = point_end.x();
     po->y = point_end.y();
     po->z = point_end.z();
-    po->normal_x = pi->normal_x;
-    po->normal_y = pi->normal_y;
+    // po->normal_x = pi->normal_x;
+    // po->normal_y = pi->normal_y;
 
     //Remove distortion time info
     po->intensity = int(pi->intensity);

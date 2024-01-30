@@ -75,6 +75,9 @@
 #include <visualization_msgs/Marker.h>
 #include <visualization_msgs/MarkerArray.h>
 
+#include <ytlab_handheld_sensoring_system_modules/TransformWithSeq.h>
+#include <ytlab_handheld_sensoring_system_modules/TransformArray.h>
+
 using namespace gtsam;
 
 using std::cout;
@@ -108,6 +111,7 @@ std::vector<pcl::PointCloud<PointType>::Ptr> keyframeLaserClouds;
 std::vector<Pose6D> keyframePoses;
 std::vector<Pose6D> keyframePosesUpdated;
 std::vector<double> keyframeTimes;
+std::vector<int> keyframeSeqs;
 int recentIdxUpdated = 0;
 // for loop closure detection
 std::map<int, int> loopIndexContainer; // 记录存在的回环对
@@ -152,6 +156,7 @@ double recentOptimizedY = 0.0;
 ros::Publisher pubMapAftPGO, pubOdomAftPGO, pubPathAftPGO;
 ros::Publisher pubLoopScanLocal, pubLoopSubmapLocal;
 ros::Publisher pubOdomRepubVerifier;
+ros::Publisher pubTransformArray;
 
 std::string save_directory;
 std::string pgKITTIformat, pgScansDirectory;
@@ -174,6 +179,37 @@ double vizPathFrequency;
 double speedFactor;
 ros::Publisher pubLoopScanLocalRegisted;
 double loopFitnessScoreThreshold;
+
+
+ytlab_handheld_sensoring_system_modules::TransformWithSeq Pose6DToTransform(Pose6D pose, int seq){
+    ytlab_handheld_sensoring_system_modules::TransformWithSeq transform;
+    tf::Transform tf_transform;
+    tf_transform.setOrigin(tf::Vector3(pose.x, pose.y, pose.z));
+    tf::Quaternion quaternion;
+    quaternion.setRPY(pose.roll, pose.pitch, pose.yaw);
+    tf_transform.setRotation(quaternion);
+
+    // tf::Transformからgeometry_msgs::Transformへの変換
+    geometry_msgs::Transform msg_transform;
+    tf::transformTFToMsg(tf_transform, msg_transform);
+    transform.transform = msg_transform;
+    transform.seq = seq;
+    return transform;
+}
+
+ytlab_handheld_sensoring_system_modules::TransformArray Pose6DArrayToTransforms(std::vector<Pose6D> keyframePoses, std::vector<int> keyframeSeqs){
+    if(keyframePoses.size()!=keyframeSeqs.size()){
+        std::cout << "Pose6DArrayToTransforms: keyframePoses.size()!=keyframeSeqs.size()" << std::endl;
+        return ytlab_handheld_sensoring_system_modules::TransformArray();
+    }
+    ytlab_handheld_sensoring_system_modules::TransformArray transforms;
+    for (int i = 0; i < keyframePoses.size(); ++i)
+    {
+        ytlab_handheld_sensoring_system_modules::TransformWithSeq transform = Pose6DToTransform(keyframePoses[i], keyframeSeqs[i]);
+        transforms.transforms.push_back(transform);
+    }
+    return transforms;
+}
 
 std::string padZeros(int val, int num_digits = 6) {
   std::ostringstream out;
@@ -326,11 +362,11 @@ pcl::PointCloud<PointType>::Ptr local2global(const pcl::PointCloud<PointType>::P
         cloudOut->points[i].y = transCur(1,0) * cloudIn->points[i].x + transCur(1,1) * cloudIn->points[i].y + transCur(1,2) * cloudIn->points[i].z + transCur(1,3);
         cloudOut->points[i].z = transCur(2,0) * cloudIn->points[i].x + transCur(2,1) * cloudIn->points[i].y + transCur(2,2) * cloudIn->points[i].z + transCur(2,3);
         cloudOut->points[i].intensity = cloudIn->points[i].intensity;
-        cloudOut->points[i].normal_x = cloudIn->points[i].normal_x;
-        cloudOut->points[i].normal_y = cloudIn->points[i].normal_y;
+        // cloudOut->points[i].normal_x = cloudIn->points[i].normal_x;
+        // cloudOut->points[i].normal_y = cloudIn->points[i].normal_y;
         
     }
-    std::cout << "pointFrom..normal_x " << cloudOut->points[0].normal_x << " pointFrom..normal_y: " << cloudOut->points[0].normal_y << std::endl;
+    // std::cout << "pointFrom..normal_x " << cloudOut->points[0].normal_x << " pointFrom..normal_y: " << cloudOut->points[0].normal_y << std::endl;
     return cloudOut;
 }
 
@@ -617,7 +653,7 @@ void process_pg()
             timeLaser = fullResBuf.front()->header.stamp.toSec();
 
             laserCloudFullRes->clear();
-            pcl::PointCloud<PointType>::Ptr thisKeyFrame(new pcl::PointCloud<PointType>());
+            pcl::PointCloud<PointTypeWithSeq>::Ptr thisKeyFrame(new pcl::PointCloud<PointTypeWithSeq>());
             pcl::fromROSMsg(*fullResBuf.front(), *thisKeyFrame);
             fullResBuf.pop();
 
@@ -674,8 +710,10 @@ void process_pg()
             //
             // Save data and Add consecutive node 
             //
+            pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_PointType(new pcl::PointCloud<pcl::PointXYZI>);
+            pcl::copyPointCloud(*thisKeyFrame, *cloud_PointType);
             pcl::PointCloud<PointType>::Ptr thisKeyFrameDS(new pcl::PointCloud<PointType>());
-            downSizeFilterScancontext.setInputCloud(thisKeyFrame);
+            downSizeFilterScancontext.setInputCloud(cloud_PointType);
             downSizeFilterScancontext.filter(*thisKeyFrameDS);
 
 
@@ -683,11 +721,12 @@ void process_pg()
             // for (int i = 0; i < thisKeyFrame->size(); ++i){
             //     std::cout<< "thisKeyFrame i:" << i << " normal_x: " << thisKeyFrame->points[i].normal_x << " normal_y: " << thisKeyFrame->points[i].normal_y << std::endl;    
             // }
-            std::cout<< "thisKeyFrame i: 0 normal_x: " << thisKeyFrame->points[0].normal_x << " normal_y: " << thisKeyFrame->points[0].normal_y << std::endl;    
+            // std::cout<< "thisKeyFrame i: 0 normal_x: " << thisKeyFrame->points[0].normal_x << " normal_y: " << thisKeyFrame->points[0].normal_y << std::endl;    
 
             mKF.lock(); 
-            // keyframeLaserClouds.push_back(thisKeyFrameDS);
-            keyframeLaserClouds.push_back(thisKeyFrame);
+            keyframeLaserClouds.push_back(thisKeyFrameDS);
+            // keyframeLaserClouds.push_back(thisKeyFrame);
+            keyframeSeqs.push_back(thisKeyFrame->points[0].normal_x);
             keyframePoses.push_back(pose_curr);
             {
                 // 发布关键帧id
@@ -700,8 +739,8 @@ void process_pg()
             keyframePosesUpdated.push_back(pose_curr); // init
             keyframeTimes.push_back(timeLaserOdometry);
 
-            // scManager.makeAndSaveScancontextAndKeys(*thisKeyFrameDS);
-            scManager.makeAndSaveScancontextAndKeys(*thisKeyFrame);
+            scManager.makeAndSaveScancontextAndKeys(*thisKeyFrameDS);
+            // scManager.makeAndSaveScancontextAndKeys(*thisKeyFrame);
 
             laserCloudMapPGORedraw = true;
             mKF.unlock(); 
@@ -999,16 +1038,20 @@ void pubMap(void)
     int counter = 0;
 
     laserCloudMapPGO->clear();
-
+    std::vector<int> mapKeyframeSeqs;
     mKF.lock(); 
     for (int node_idx=0; node_idx < int(keyframePosesUpdated.size()); node_idx++) {
     // for (int node_idx=0; node_idx < recentIdxUpdated; node_idx++) {
         if(counter % SKIP_FRAMES == 0) {
             *laserCloudMapPGO += *local2global(keyframeLaserClouds[node_idx], keyframePosesUpdated[node_idx]);
+            // cout << "node_idx: " << node_idx <<" keyframeLaserClouds.size:"<< keyframeLaserClouds[node_idx]->points.size() << endl;
         }
+        mapKeyframeSeqs.push_back(keyframeSeqs[node_idx]);
         counter++;
     }
+    ytlab_handheld_sensoring_system_modules::TransformArray transformArray = Pose6DArrayToTransforms(keyframePosesUpdated, mapKeyframeSeqs);
     mKF.unlock(); 
+    pubTransformArray.publish(transformArray);
     cout << "RAW Map point_size: " << laserCloudMapPGO->points.size() << endl;
     downSizeFilterMapPGO.setInputCloud(laserCloudMapPGO);
     downSizeFilterMapPGO.filter(*laserCloudMapPGO);
@@ -1025,7 +1068,7 @@ void pubMap(void)
         pcl::toROSMsg(*laserCloudMapPGO, laserCloudMapPGOMsg);
         
         cout << "Save pcd" << endl;
-        pcl::io::savePCDFileBinary(save_directory+"/pgo_aft_map.pcd", *laserCloudMapPGO); // scan 
+        // pcl::io::savePCDFileBinary(save_directory+"/pgo_aft_map.pcd", *laserCloudMapPGO); // scan 
         // pcl::io::savePCDFileASCII(save_directory+"/pgo_aft_map.pcd", *laserCloudMapPGO_wo_black); // scan 
         laserCloudMapPGOMsg.header.frame_id = "camera_init";
         pubMapAftPGO.publish(laserCloudMapPGOMsg);
@@ -1100,14 +1143,15 @@ int main(int argc, char **argv)
     scManager.setSCdistThres(scDistThres);
     scManager.setMaximumRadius(scMaximumRadius);
 
-    float filter_size = 0.15;
+    float filter_size = 0.20;
+    // float filter_size = 0.10;
     // float filter_size = 0.01; 
     downSizeFilterScancontext.setLeafSize(filter_size, filter_size, filter_size);
-    
-    .setLeafSize(filter_size, filter_size, filter_size);
+    downSizeFilterICP.setLeafSize(filter_size, filter_size, filter_size);
 
     double mapVizFilterSize;
 	nh.param<double>("mapviz_filter_size", mapVizFilterSize, 0.4); // pose assignment every k frames 
+    mapVizFilterSize = 0.6;
     downSizeFilterMapPGO.setLeafSize(mapVizFilterSize, mapVizFilterSize, mapVizFilterSize);
 
 	ros::Subscriber subLaserCloudFullRes = nh.subscribe<sensor_msgs::PointCloud2>("/velodyne_cloud_registered_local", 100, laserCloudFullResHandler);
@@ -1129,6 +1173,8 @@ int main(int argc, char **argv)
 
 	pubLoopScanLocal = nh.advertise<sensor_msgs::PointCloud2>("/loop_scan_local", 100);
 	pubLoopSubmapLocal = nh.advertise<sensor_msgs::PointCloud2>("/loop_submap_local", 100);
+
+    pubTransformArray = nh.advertise<ytlab_handheld_sensoring_system_modules::TransformArray>("/transform_array", 100);
 
 	std::thread posegraph_slam {process_pg}; // pose graph construction
 	std::thread lc_detection {process_lcd}; // loop closure detection 

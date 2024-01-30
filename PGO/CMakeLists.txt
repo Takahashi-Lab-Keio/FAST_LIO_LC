@@ -17,6 +17,7 @@ find_package(catkin REQUIRED COMPONENTS
   image_transport
   cv_bridge
   tf
+  ytlab_handheld_sensoring_system_modules
 )
 
 #find_package(Eigen3 REQUIRED)

@@ -165,8 +165,8 @@ void laserCloudHandler(const sensor_msgs::PointCloud2ConstPtr &laserCloudMsg)
         point.x = laserCloudIn.points[i].x;
         point.y = laserCloudIn.points[i].y;
         point.z = laserCloudIn.points[i].z;
-        point.normal_x = laserCloudIn.points[i].normal_x;
-        point.normal_y = laserCloudIn.points[i].normal_y;
+        // point.normal_x = laserCloudIn.points[i].normal_x;
+        // point.normal_y = laserCloudIn.points[i].normal_y;
 
         // std::cout << "point.normal_x " << point.normal_x << " point.normal_y: " << point.normal_y << std::endl;
 
