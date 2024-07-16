@@ -887,6 +887,8 @@ int main(int argc, char** argv)
     nh.param<bool>("pcd_save_enable", pcd_save_en, 0);
     nh.param<vector<double>>("mapping/extrinsic_T", extrinT, vector<double>());
     nh.param<vector<double>>("mapping/extrinsic_R", extrinR, vector<double>());
+    cout<< "common/lid_topic "<<lid_topic<<endl;
+    cout<< "common/imu_topic "<<imu_topic<<endl;
     cout<<"p_pre->lidar_type "<<p_pre->lidar_type<<endl;
 
     nh.param<bool>("visulize_map", visulize_map, false);
