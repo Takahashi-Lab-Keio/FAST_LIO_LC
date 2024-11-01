@@ -48,6 +48,7 @@
 #include <nav_msgs/Odometry.h>
 #include <nav_msgs/Path.h>
 #include <geometry_msgs/PoseStamped.h>
+#include <std_msgs/Empty.h>
 
 #include <Eigen/Dense>
 
@@ -144,8 +145,8 @@ pcl::PointCloud<PointType>::Ptr laserCloudMapPGO(new pcl::PointCloud<PointType>(
 pcl::VoxelGrid<PointType> downSizeFilterMapPGO;
 bool laserCloudMapPGORedraw = true;
 
-bool useGPS = true;
-// bool useGPS = false;
+// bool useGPS = true;
+bool useGPS = false;
 sensor_msgs::NavSatFix::ConstPtr currGPS;
 bool hasGPSforThisKF = false;
 bool gpsOffsetInitialized = false; 
@@ -162,6 +163,7 @@ std::string save_directory;
 std::string pgKITTIformat, pgScansDirectory;
 std::string odomKITTIformat;
 std::fstream pgTimeSaveStream;
+std::string transform_array_filename;
 
 // for front_end
 ros::Publisher pubKeyFramesId;
@@ -179,6 +181,8 @@ double vizPathFrequency;
 double speedFactor;
 ros::Publisher pubLoopScanLocalRegisted;
 double loopFitnessScoreThreshold;
+
+bool enable_save_pcd;
 
 
 aloam_velodyne::TransformWithSeq Pose6DToTransform(Pose6D pose, int seq){
@@ -211,6 +215,27 @@ aloam_velodyne::TransformArray Pose6DArrayToTransforms(std::vector<Pose6D> keyfr
     return transforms;
 }
 
+void save_transform_array(ytlab_handheld_sensoring_system_modules::TransformArray transforms, std::string filename){
+    // write to csv file
+    std::ofstream ofs(filename);
+    if (!ofs)
+    {
+        std::cerr << "Failed to open " << filename << std::endl;
+        return;
+    }
+    for (int i = 0; i < transforms.transforms.size(); ++i)
+    {
+        ofs << transforms.transforms[i].seq << ","
+            << transforms.transforms[i].transform.translation.x << ","
+            << transforms.transforms[i].transform.translation.y << ","
+            << transforms.transforms[i].transform.translation.z << ","
+            << transforms.transforms[i].transform.rotation.x << ","
+            << transforms.transforms[i].transform.rotation.y << ","
+            << transforms.transforms[i].transform.rotation.z << ","
+            << transforms.transforms[i].transform.rotation.w << std::endl;
+    }
+    ofs.close();
+}
 std::string padZeros(int val, int num_digits = 6) {
   std::ostringstream out;
   out << std::internal << std::setfill('0') << std::setw(num_digits) << val;
@@ -1042,10 +1067,9 @@ void pubMap(void)
     mKF.lock(); 
     for (int node_idx=0; node_idx < int(keyframePosesUpdated.size()); node_idx++) {
     // for (int node_idx=0; node_idx < recentIdxUpdated; node_idx++) {
-        if(counter % SKIP_FRAMES == 0) {
-            *laserCloudMapPGO += *local2global(keyframeLaserClouds[node_idx], keyframePosesUpdated[node_idx]);
-            // cout << "node_idx: " << node_idx <<" keyframeLaserClouds.size:"<< keyframeLaserClouds[node_idx]->points.size() << endl;
-        }
+        *laserCloudMapPGO += *local2global(keyframeLaserClouds[node_idx], keyframePosesUpdated[node_idx]);
+        // cout << "node_idx: " << node_idx <<" keyframeLaserClouds.size:"<< keyframeLaserClouds[node_idx]->points.size() << endl;
+    
         mapKeyframeSeqs.push_back(keyframeSeqs[node_idx]);
         counter++;
     }
@@ -1067,7 +1091,11 @@ void pubMap(void)
         sensor_msgs::PointCloud2 laserCloudMapPGOMsg;
         pcl::toROSMsg(*laserCloudMapPGO, laserCloudMapPGOMsg);
         
-        cout << "Save pcd" << endl;
+        if (enable_save_pcd) {
+            cout << "Save pcd" << endl;
+            pcl::io::savePCDFileASCII(save_directory+"/pgo_aft_map.pcd", *laserCloudMapPGO); // scan 
+            save_transform_array(transformArray, transform_array_filename);
+        }
         // pcl::io::savePCDFileBinary(save_directory+"/pgo_aft_map.pcd", *laserCloudMapPGO); // scan 
         // pcl::io::savePCDFileASCII(save_directory+"/pgo_aft_map.pcd", *laserCloudMapPGO_wo_black); // scan 
         laserCloudMapPGOMsg.header.frame_id = "camera_init";
@@ -1075,6 +1103,43 @@ void pubMap(void)
         // cout << "Map is updated color_point_size: " << color_point_size << endl;
     }
     
+}
+
+void save(void){
+    laserCloudMapPGO->clear();
+    std::vector<int> mapKeyframeSeqs;
+    mKF.lock(); 
+    for (int node_idx=0; node_idx < int(keyframePosesUpdated.size()); node_idx++) {
+    // for (int node_idx=0; node_idx < recentIdxUpdated; node_idx++) {
+        *laserCloudMapPGO += *local2global(keyframeLaserClouds[node_idx], keyframePosesUpdated[node_idx]);
+        // cout << "node_idx: " << node_idx <<" keyframeLaserClouds.size:"<< keyframeLaserClouds[node_idx]->points.size() << endl;
+    
+        mapKeyframeSeqs.push_back(keyframeSeqs[node_idx]);
+    }
+    ytlab_handheld_sensoring_system_modules::TransformArray transformArray = Pose6DArrayToTransforms(keyframePosesUpdated, mapKeyframeSeqs);
+    mKF.unlock(); 
+    cout << "RAW Map point_size: " << laserCloudMapPGO->points.size() << endl;
+    downSizeFilterMapPGO.setInputCloud(laserCloudMapPGO);
+    downSizeFilterMapPGO.filter(*laserCloudMapPGO);
+    // cout << "set laserCloudMapPGO_wo_black start" << endl;
+    if(laserCloudMapPGO->points.size()>0){
+
+        // cout << "set laserCloudMapPGO_wo_black step2" << endl;
+        // cout << "color_point_size: " << color_point_size << endl;
+        // cout << "set laserCloudMapPGO_wo_black step3" << endl;
+        // laserCloudMapPGO_wo_black->points.resize(color_point_size);
+        // cout << "set laserCloudMapPGO_wo_black step4" << endl;
+        // cout << "set laserCloudMapPGO_wo_black step4" << endl;
+        sensor_msgs::PointCloud2 laserCloudMapPGOMsg;
+        pcl::toROSMsg(*laserCloudMapPGO, laserCloudMapPGOMsg);
+
+        cout << "Save pcd" << endl;
+        pcl::io::savePCDFileASCII(save_directory+"/final_pgo_aft_map.pcd", *laserCloudMapPGO); // scan 
+        save_transform_array(transformArray, transform_array_filename);
+        // pcl::io::savePCDFileBinary(save_directory+"/pgo_aft_map.pcd", *laserCloudMapPGO); // scan 
+        // pcl::io::savePCDFileASCII(save_directory+"/pgo_aft_map.pcd", *laserCloudMapPGO_wo_black); // scan 
+        // cout << "Map is updated color_point_size: " << color_point_size << endl;
+    }
 }
 
 void process_viz_map(void)
@@ -1089,18 +1154,32 @@ void process_viz_map(void)
     }
 } // pointcloud_viz
 
+void save_req(const std_msgs::Empty::ConstPtr& msg)
+{
+    save();
+}
+
 
 int main(int argc, char **argv)
 {
 	ros::init(argc, argv, "laserPGO");
 	ros::NodeHandle nh;
+    nh.param<std::string>("rosbag_path", save_directory, ""); // pose assignment every k m move
+    if (save_directory == "") {
+        nh.param<std::string>("save_directory", save_directory, ""); // pose assignment every k m move
+    }
+    else{
+        size_t lastindex = save_directory.find_last_of("."); 
+        save_directory = save_directory.substr(0, lastindex); 
+    }
+	system((std::string("mkdir -p ") + save_directory).c_str());
 
-	nh.param<std::string>("save_directory", save_directory, "/"); // pose assignment every k m move 
-    pgKITTIformat = save_directory + "optimized_poses.txt";
-    odomKITTIformat = save_directory + "odom_poses.txt";
-    pgTimeSaveStream = std::fstream(save_directory + "times.txt", std::fstream::out); 
+    pgKITTIformat = save_directory + "/optimized_poses.txt";
+    odomKITTIformat = save_directory + "/odom_poses.txt";
+    transform_array_filename = save_directory + "/transform_array.csv";
+    pgTimeSaveStream = std::fstream(save_directory + "/times.txt", std::fstream::out); 
     pgTimeSaveStream.precision(std::numeric_limits<double>::max_digits10);
-    pgScansDirectory = save_directory + "Scans/";
+    pgScansDirectory = save_directory + "/Scans/";
     auto unused = system((std::string("exec rm -r ") + pgScansDirectory).c_str());
     unused = system((std::string("mkdir -p ") + pgScansDirectory).c_str());
 
@@ -1143,20 +1222,30 @@ int main(int argc, char **argv)
     scManager.setSCdistThres(scDistThres);
     scManager.setMaximumRadius(scMaximumRadius);
 
-    float filter_size = 0.20;
+    double filter_size = 0.20;
+    nh.param<double>("prepro_filter_size", filter_size, 0.2);
+    
     // float filter_size = 0.10;
     // float filter_size = 0.01; 
     downSizeFilterScancontext.setLeafSize(filter_size, filter_size, filter_size);
     downSizeFilterICP.setLeafSize(filter_size, filter_size, filter_size);
 
     double mapVizFilterSize;
-	nh.param<double>("mapviz_filter_size", mapVizFilterSize, 0.4); // pose assignment every k frames 
-    mapVizFilterSize = 0.6;
+	nh.param<double>("mapviz_filter_size", mapVizFilterSize, 0.6); // pose assignment every k frames 
     downSizeFilterMapPGO.setLeafSize(mapVizFilterSize, mapVizFilterSize, mapVizFilterSize);
+
+    enable_save_pcd = false;
+    nh.param<bool>("enable_save_pcd", enable_save_pcd, false); // pose assignment every k frames
+    if (!enable_save_pcd) {
+        nh.param<bool>("enable_save", enable_save_pcd, false); // pose assignment every k frames
+    }
+    
 
 	ros::Subscriber subLaserCloudFullRes = nh.subscribe<sensor_msgs::PointCloud2>("/velodyne_cloud_registered_local", 100, laserCloudFullResHandler);
 	ros::Subscriber subLaserOdometry = nh.subscribe<nav_msgs::Odometry>("/aft_mapped_to_init_high_frec", 100, laserOdometryHandler);
 	ros::Subscriber subGPS = nh.subscribe<sensor_msgs::NavSatFix>("/gps/fix", 100, gpsHandler);
+    ros::Subscriber subSaveReq = nh.subscribe<std_msgs::Empty>("/fastlio_save", 1, save_req);
+
 
 	pubOdomAftPGO = nh.advertise<nav_msgs::Odometry>("/aft_pgo_odom", 100);
 	pubOdomRepubVerifier = nh.advertise<nav_msgs::Odometry>("/repub_odom", 100);
@@ -1183,8 +1272,13 @@ int main(int argc, char **argv)
 
 	std::thread viz_map {process_viz_map}; // visualization - map (low frequency because it is heavy)
 	//std::thread viz_path {process_viz_path}; // visualization - path (high frequency)
-
- 	ros::spin();
-
+    std::atexit(save);
+    while (ros::ok())
+    {
+        // sleep
+        std::chrono::milliseconds dura(20);
+        ros::spinOnce();
+    }
+    save();
 	return 0;
 }
