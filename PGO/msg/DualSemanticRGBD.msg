@@ -1,0 +1,11 @@
+std_msgs/Int32 seq
+sensor_msgs/Image left_rect_image
+sensor_msgs/CameraInfo left_camera_info
+sensor_msgs/Image right_rect_image
+sensor_msgs/CameraInfo right_camera_info
+sensor_msgs/Image range_image
+sensor_msgs/Image reflec_image
+sensor_msgs/PointCloud2 cloud
+std_msgs/String lidar_meta_data
+BoundingBoxArray left_boundingbox_array
+BoundingBoxArray right_boundingbox_array

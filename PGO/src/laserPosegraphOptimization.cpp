@@ -75,8 +75,8 @@
 #include <visualization_msgs/Marker.h>
 #include <visualization_msgs/MarkerArray.h>
 
-#include <ytlab_handheld_sensoring_system_modules/TransformWithSeq.h>
-#include <ytlab_handheld_sensoring_system_modules/TransformArray.h>
+#include <aloam_velodyne/TransformWithSeq.h>
+#include <aloam_velodyne/TransformArray.h>
 
 using namespace gtsam;
 
@@ -181,8 +181,8 @@ ros::Publisher pubLoopScanLocalRegisted;
 double loopFitnessScoreThreshold;
 
 
-ytlab_handheld_sensoring_system_modules::TransformWithSeq Pose6DToTransform(Pose6D pose, int seq){
-    ytlab_handheld_sensoring_system_modules::TransformWithSeq transform;
+aloam_velodyne::TransformWithSeq Pose6DToTransform(Pose6D pose, int seq){
+    aloam_velodyne::TransformWithSeq transform;
     tf::Transform tf_transform;
     tf_transform.setOrigin(tf::Vector3(pose.x, pose.y, pose.z));
     tf::Quaternion quaternion;
@@ -197,15 +197,15 @@ ytlab_handheld_sensoring_system_modules::TransformWithSeq Pose6DToTransform(Pose
     return transform;
 }
 
-ytlab_handheld_sensoring_system_modules::TransformArray Pose6DArrayToTransforms(std::vector<Pose6D> keyframePoses, std::vector<int> keyframeSeqs){
+aloam_velodyne::TransformArray Pose6DArrayToTransforms(std::vector<Pose6D> keyframePoses, std::vector<int> keyframeSeqs){
     if(keyframePoses.size()!=keyframeSeqs.size()){
         std::cout << "Pose6DArrayToTransforms: keyframePoses.size()!=keyframeSeqs.size()" << std::endl;
-        return ytlab_handheld_sensoring_system_modules::TransformArray();
+        return aloam_velodyne::TransformArray();
     }
-    ytlab_handheld_sensoring_system_modules::TransformArray transforms;
+    aloam_velodyne::TransformArray transforms;
     for (int i = 0; i < keyframePoses.size(); ++i)
     {
-        ytlab_handheld_sensoring_system_modules::TransformWithSeq transform = Pose6DToTransform(keyframePoses[i], keyframeSeqs[i]);
+        aloam_velodyne::TransformWithSeq transform = Pose6DToTransform(keyframePoses[i], keyframeSeqs[i]);
         transforms.transforms.push_back(transform);
     }
     return transforms;
@@ -1049,7 +1049,7 @@ void pubMap(void)
         mapKeyframeSeqs.push_back(keyframeSeqs[node_idx]);
         counter++;
     }
-    ytlab_handheld_sensoring_system_modules::TransformArray transformArray = Pose6DArrayToTransforms(keyframePosesUpdated, mapKeyframeSeqs);
+    aloam_velodyne::TransformArray transformArray = Pose6DArrayToTransforms(keyframePosesUpdated, mapKeyframeSeqs);
     mKF.unlock(); 
     pubTransformArray.publish(transformArray);
     cout << "RAW Map point_size: " << laserCloudMapPGO->points.size() << endl;
@@ -1174,7 +1174,7 @@ int main(int argc, char **argv)
 	pubLoopScanLocal = nh.advertise<sensor_msgs::PointCloud2>("/loop_scan_local", 100);
 	pubLoopSubmapLocal = nh.advertise<sensor_msgs::PointCloud2>("/loop_submap_local", 100);
 
-    pubTransformArray = nh.advertise<ytlab_handheld_sensoring_system_modules::TransformArray>("/transform_array", 100);
+    pubTransformArray = nh.advertise<aloam_velodyne::TransformArray>("/transform_array", 100);
 
 	std::thread posegraph_slam {process_pg}; // pose graph construction
 	std::thread lc_detection {process_lcd}; // loop closure detection 

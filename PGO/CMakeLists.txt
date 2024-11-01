@@ -38,6 +38,22 @@ include_directories(
   ${GTSAM_INCLUDE_DIR}
 )
 
+add_message_files(
+  FILES
+  BoundingBox.msg
+  BoundingBoxArray.msg
+  SemanticRGBD.msg
+  DualSemanticRGBD.msg
+  TransformWithSeq.msg
+  TransformArray.msg
+)
+generate_messages(
+   DEPENDENCIES
+   geometry_msgs
+   std_msgs
+   sensor_msgs
+ )
+
 catkin_package(
   CATKIN_DEPENDS geometry_msgs nav_msgs roscpp rospy std_msgs 
   DEPENDS EIGEN3 PCL 
