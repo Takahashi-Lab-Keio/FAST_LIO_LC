@@ -215,7 +215,7 @@ aloam_velodyne::TransformArray Pose6DArrayToTransforms(std::vector<Pose6D> keyfr
     return transforms;
 }
 
-void save_transform_array(ytlab_handheld_sensoring_system_modules::TransformArray transforms, std::string filename){
+void save_transform_array(aloam_velodyne::TransformArray transforms, std::string filename){
     // write to csv file
     std::ofstream ofs(filename);
     if (!ofs)
@@ -1116,7 +1116,7 @@ void save(void){
     
         mapKeyframeSeqs.push_back(keyframeSeqs[node_idx]);
     }
-    ytlab_handheld_sensoring_system_modules::TransformArray transformArray = Pose6DArrayToTransforms(keyframePosesUpdated, mapKeyframeSeqs);
+    aloam_velodyne::TransformArray transformArray = Pose6DArrayToTransforms(keyframePosesUpdated, mapKeyframeSeqs);
     mKF.unlock(); 
     cout << "RAW Map point_size: " << laserCloudMapPGO->points.size() << endl;
     downSizeFilterMapPGO.setInputCloud(laserCloudMapPGO);
