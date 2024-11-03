@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8.3)
+cmake_minimum_required(VERSION 3.10.0)
 project(aloam_velodyne)
 
 set(CMAKE_BUILD_TYPE "Release")
@@ -14,10 +14,12 @@ find_package(catkin REQUIRED COMPONENTS
   rospy
   rosbag
   std_msgs
+  pcl_conversions
+  pcl_ros
   image_transport
+  image_geometry
   cv_bridge
   tf
-  ytlab_handheld_sensoring_system_modules
 )
 
 #find_package(Eigen3 REQUIRED)
@@ -87,6 +89,12 @@ target_link_libraries(alaserPGO
 add_executable(kittiHelper src/kittiHelper.cpp)
 target_link_libraries(kittiHelper ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBS})
 
-
+add_executable(pointcloud_colorizer_dummy src/pointcloud_colorizer_dummy.cpp)
+add_dependencies(pointcloud_colorizer_dummy ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+## Specify libraries to link a library or executable target against
+target_link_libraries(pointcloud_colorizer_dummy
+  ${catkin_LIBRARIES}
+  ${OpenCV_LIBRARIES}
+)
 
 

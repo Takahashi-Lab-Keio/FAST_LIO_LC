@@ -74,8 +74,8 @@
 #include <pcl/kdtree/kdtree_flann.h>
 #include <map>
 #include <unordered_map>
-#include <ytlab_handheld_sensoring_system_modules/SemanticRGBD.h>
-#include <ytlab_handheld_sensoring_system_modules/DualSemanticRGBD.h>
+#include <aloam_velodyne/SemanticRGBD.h>
+#include <aloam_velodyne/DualSemanticRGBD.h>
 
 #define INIT_TIME           (0.1)
 #define LASER_POINT_COV     (0.001)
@@ -356,7 +356,7 @@ void standard_pcl_cbk(const sensor_msgs::PointCloud2::ConstPtr &msg)
     sig_buffer.notify_all();
 }
 
-void semantic_rgbd_cbk(const ytlab_handheld_sensoring_system_modules::SemanticRGBDConstPtr& rgbd_msg)
+void semantic_rgbd_cbk(const aloam_velodyne::SemanticRGBDConstPtr& rgbd_msg)
 {
     mtx_buffer.lock();
     scan_count ++;
@@ -381,7 +381,7 @@ void semantic_rgbd_cbk(const ytlab_handheld_sensoring_system_modules::SemanticRG
     sig_buffer.notify_all();
 }
 
-void dual_semantic_rgbd_cbk(const ytlab_handheld_sensoring_system_modules::DualSemanticRGBDConstPtr& rgbd_msg)
+void dual_semantic_rgbd_cbk(const aloam_velodyne::DualSemanticRGBDConstPtr& rgbd_msg)
 {
     mtx_buffer.lock();
     scan_count ++;
