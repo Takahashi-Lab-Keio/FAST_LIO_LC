@@ -226,7 +226,7 @@ void save_transform_array(aloam_velodyne::TransformArray transforms, std::string
     for (int i = 0; i < transforms.transforms.size(); ++i)
     {
         ofs << transforms.transforms[i].seq << ","
-            << os::Time().fromSec(keyframeTimes.at(i)) << ","
+            << ros::Time().fromSec(keyframeTimes.at(i)) << ","
             << transforms.transforms[i].transform.translation.x << ","
             << transforms.transforms[i].transform.translation.y << ","
             << transforms.transforms[i].transform.translation.z << ","
