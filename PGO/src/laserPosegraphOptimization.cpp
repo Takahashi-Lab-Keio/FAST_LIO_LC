@@ -226,6 +226,7 @@ void save_transform_array(aloam_velodyne::TransformArray transforms, std::string
     for (int i = 0; i < transforms.transforms.size(); ++i)
     {
         ofs << transforms.transforms[i].seq << ","
+            << os::Time().fromSec(keyframeTimes.at(i)) << ","
             << transforms.transforms[i].transform.translation.x << ","
             << transforms.transforms[i].transform.translation.y << ","
             << transforms.transforms[i].transform.translation.z << ","
@@ -1172,19 +1173,16 @@ int main(int argc, char **argv)
         size_t lastindex = save_directory.find_last_of("."); 
         save_directory = save_directory.substr(0, lastindex); 
     }
-    if(save_directory!="None"){
-	    system((std::string("mkdir -p ") + save_directory).c_str());
-         pgKITTIformat = save_directory + "/optimized_poses.txt";
-        odomKITTIformat = save_directory + "/odom_poses.txt";
-        transform_array_filename = save_directory + "/transform_array.csv";
-        pgTimeSaveStream = std::fstream(save_directory + "/times.txt", std::fstream::out); 
-        pgTimeSaveStream.precision(std::numeric_limits<double>::max_digits10);
-        pgScansDirectory = save_directory + "/Scans/";
-        auto unused = system((std::string("exec rm -r ") + pgScansDirectory).c_str());
-        unused = system((std::string("mkdir -p ") + pgScansDirectory).c_str());
-    }
+	system((std::string("mkdir -p ") + save_directory).c_str());
 
-   
+    pgKITTIformat = save_directory + "/optimized_poses.txt";
+    odomKITTIformat = save_directory + "/odom_poses.txt";
+    transform_array_filename = save_directory + "/transform_array.csv";
+    pgTimeSaveStream = std::fstream(save_directory + "/times.txt", std::fstream::out); 
+    pgTimeSaveStream.precision(std::numeric_limits<double>::max_digits10);
+    pgScansDirectory = save_directory + "/Scans/";
+    auto unused = system((std::string("exec rm -r ") + pgScansDirectory).c_str());
+    unused = system((std::string("mkdir -p ") + pgScansDirectory).c_str());
 
 	nh.param<double>("keyframe_meter_gap", keyframeMeterGap, 2.0); // pose assignment every k m move 
 	nh.param<double>("keyframe_deg_gap", keyframeDegGap, 10.0); // pose assignment every k deg rot 
@@ -1241,9 +1239,6 @@ int main(int argc, char **argv)
     nh.param<bool>("enable_save_pcd", enable_save_pcd, false); // pose assignment every k frames
     if (!enable_save_pcd) {
         nh.param<bool>("enable_save", enable_save_pcd, false); // pose assignment every k frames
-    }
-    if(save_directory=="None"){
-        enable_save_pcd = false;
     }
     
 
