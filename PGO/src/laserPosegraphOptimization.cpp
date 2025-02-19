@@ -1135,11 +1135,15 @@ void save(void){
         pcl::toROSMsg(*laserCloudMapPGO, laserCloudMapPGOMsg);
 
         cout << "Save pcd" << endl;
-        pcl::io::savePCDFileASCII(save_directory+"/final_pgo_aft_map.pcd", *laserCloudMapPGO); // scan 
+        // pcl::io::savePCDFileASCII(save_directory+"/final_pgo_aft_map_ascii.pcd", *laserCloudMapPGO); // scan 
+        pcl::io::savePCDFileBinary(save_directory+"/final_pgo_aft_map_bin.pcd", *laserCloudMapPGO); // scan
         save_transform_array(transformArray, transform_array_filename);
         // pcl::io::savePCDFileBinary(save_directory+"/pgo_aft_map.pcd", *laserCloudMapPGO); // scan 
         // pcl::io::savePCDFileASCII(save_directory+"/pgo_aft_map.pcd", *laserCloudMapPGO_wo_black); // scan 
         // cout << "Map is updated color_point_size: " << color_point_size << endl;
+
+        // wait for the map to be saved
+
     }
 }
 
@@ -1273,7 +1277,7 @@ int main(int argc, char **argv)
 
 	std::thread viz_map {process_viz_map}; // visualization - map (low frequency because it is heavy)
 	//std::thread viz_path {process_viz_path}; // visualization - path (high frequency)
-    std::atexit(save);
+    // std::atexit(save);
     while (ros::ok())
     {
         // sleep
